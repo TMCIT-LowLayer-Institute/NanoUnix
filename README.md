@@ -1,4 +1,9 @@
+<p align="center">
+  <img src="https://github.com/TMCIT-LowLayer-Institute/NanoUnix/assets/78244973/7b1f4dde-b3fb-46be-a170-d5530a764bac" alt="NanoUnix Logo">
+</p>
+
 **NanoUnix Operating System**
+
 ========================
 
 NanoUnix is a lightweight operating system based on the re-implementation of Dennis Ritchie's and Ken Thompson's Unix Version 6 (v6) called xv6. xv6 loosely follows the structure and style of v6 but is implemented for a modern RISC-V multiprocessor using ANSI C.
