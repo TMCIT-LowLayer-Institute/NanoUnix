@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/TMCIT-LowLayer-Institute/NanoUnix/assets/78244973/7b1f4dde-b3fb-46be-a170-d5530a764bac" alt="NanoUnix Logo" width="100" height="100">
+  <img src="https://github.com/TMCIT-LowLayer-Institute/NanoUnix/assets/78244973/7b1f4dde-b3fb-46be-a170-d5530a764bac" alt="NanoUnix Logo" width="150" height="150">
 </p>
 
 **NanoUnix Operating System**
