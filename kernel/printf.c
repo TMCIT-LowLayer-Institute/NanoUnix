@@ -42,7 +42,7 @@
 #include "defs.h"
 #include "proc.h"
 
-#include "../include/C/stdarg.h"
+#include <C/stdarg.h>
 
 volatile int panicked = 0;
 

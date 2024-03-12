@@ -2,9 +2,7 @@
 #include "kernel/stat.h"
 #include "user/user.h"
 
-constexpr auto MAX_BUF_SIZE = 512;
-
-char buf[MAX_BUF_SIZE];
+char buf[512];
 
 void
 cat(int fd)
@@ -12,10 +10,6 @@ cat(int fd)
   int n;
 
   while((n = read(fd, buf, sizeof(buf))) > 0) {
-    if (n > MAX_BUF_SIZE) {
-      fprintf(2, "cat: buffer size exceeded\n");
-      exit(1);
-    }
     if (write(1, buf, n) != n) {
       fprintf(2, "cat: write error\n");
       exit(1);

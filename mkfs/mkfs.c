@@ -23,14 +23,14 @@
 int nbitmap = FSSIZE/(BSIZE*8) + 1;
 int ninodeblocks = NINODES / IPB + 1;
 int nlog = LOGSIZE;
-int nmeta = undefined;    // Number of meta blocks (boot, sb, nlog, inode, bitmap)
-int nblocks = undefined;  // Number of data blocks
+int nmeta;    // Number of meta blocks (boot, sb, nlog, inode, bitmap)
+int nblocks;  // Number of data blocks
 
 int fsfd;
 struct superblock sb;
 char zeroes[BSIZE];
 uint freeinode = 1;
-uint freeblock = undefined;
+uint freeblock;
 
 
 void balloc(int);
@@ -46,7 +46,7 @@ void die(const char *);
 ushort
 xshort(ushort x)
 {
-  ushort y = 0;
+  ushort y;
   uchar *a = (uchar*)&y;
   a[0] = x;
   a[1] = x >> 8;
@@ -56,7 +56,7 @@ xshort(ushort x)
 uint
 xint(uint x)
 {
-  uint y = undefined;
+  uint y;
   uchar *a = (uchar*)&y;
   a[0] = x;
   a[1] = x >> 8;
@@ -68,11 +68,11 @@ xint(uint x)
 int
 main(int argc, char *argv[])
 {
-  int i = undefined, cc = undefined, fd = undefined;
-  uint rootino = undefined, inum = undefined, off = undefined;
-  struct dirent de = {};
+  int i, cc, fd;
+  uint rootino, inum, off;
+  struct dirent de;
   char buf[BSIZE];
-  struct dinode din = {};
+  struct dinode din;
 
 
   static_assert(sizeof(int) == 4, "Integers must be 4 bytes!");
@@ -134,18 +134,6 @@ main(int argc, char *argv[])
       shortname = argv[i] + 5;
     else
       shortname = argv[i];
-
-    /*
-     * Skip assertion check for 'shortname' containing '/' since it is expected in certain cases.
-     */
-    if (strcmp(shortname, "sys/lib/libsa/*.h") == 0)
-    {
-      printf("Skipping file: %s\n", shortname);
-      continue;
-    }
-
-    if (strcmp(shortname, "sys/lib/libsa/*.h") != 0)
-      assert(index(shortname, '/') == 0);
     
     assert(index(shortname, '/') == 0);
 
@@ -197,8 +185,8 @@ void
 winode(uint inum, struct dinode *ip)
 {
   char buf[BSIZE];
-  uint bn = undefined;
-  struct dinode *dip = nullptr;
+  uint bn;
+  struct dinode *dip;
 
   bn = IBLOCK(inum, sb);
   rsect(bn, buf);
@@ -211,8 +199,8 @@ void
 rinode(uint inum, struct dinode *ip)
 {
   char buf[BSIZE];
-  uint bn = undefined;
-  struct dinode *dip = nullptr;
+  uint bn;
+  struct dinode *dip;
 
   bn = IBLOCK(inum, sb);
   rsect(bn, buf);
@@ -233,7 +221,7 @@ uint
 ialloc(ushort type)
 {
   uint inum = freeinode++;
-  struct dinode din = {};
+  struct dinode din;
 
   bzero(&din, sizeof(din));
   din.type = xshort(type);
@@ -247,7 +235,7 @@ void
 balloc(int used)
 {
   uchar buf[BSIZE];
-  int i = undefined;
+  int i;
 
   printf("balloc: first %d blocks have been allocated\n", used);
   assert(used < BSIZE*8);
@@ -265,11 +253,11 @@ void
 iappend(uint inum, void *xp, int n)
 {
   char *p = (char*)xp;
-  uint fbn = undefined, off = undefined, n1 = undefined;
-  struct dinode din = {};
+  uint fbn, off, n1;
+  struct dinode din;
   char buf[BSIZE];
   uint indirect[NINDIRECT];
-  uint x = undefined;
+  uint x;
 
   rinode(inum, &din);
   off = xint(din.size);

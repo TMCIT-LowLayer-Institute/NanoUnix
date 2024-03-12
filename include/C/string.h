@@ -77,11 +77,9 @@
 typedef	__size_t	size_t;
 #endif
 
-#if __POSIX_VISIBLE >= 200809
 #ifndef _LOCALE_T_DEFINED_
 #define _LOCALE_T_DEFINED_
 typedef void	*locale_t;
-#endif
 #endif
 
 __BEGIN_DECLS
@@ -125,10 +123,8 @@ void	*memccpy(void * const __restrict dst, void const* const __restrict src, int
         __attribute__ ((__bounded__(__buffer__,1,4)));
 #endif
 
-#if __POSIX_VISIBLE >= 200112
 int	 strerror_r(int, char *, size_t)
 	    __attribute__ ((__bounded__(__string__,2,3)));
-#endif
 
 #if __XPG_VISIBLE >= 420 || __POSIX_VISIBLE >= 200809
 char	*strdup(const char *);

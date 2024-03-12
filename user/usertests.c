@@ -241,7 +241,7 @@ copyinstr3(char *s)
 // See if the kernel refuses to read/write user memory that the
 // application doesn't have anymore, because it returned it.
 void
-rwsbrk(char *arg)
+rwsbrk(char *)
 {
   int fd, n;
   
@@ -2580,7 +2580,7 @@ struct test {
   {copyinstr1, "copyinstr1"},
   {copyinstr2, "copyinstr2"},
   {copyinstr3, "copyinstr3"},
-  {rwsbrk, "rwsbrk" },
+  {rwsbrk, "rwsbrk"},
   {truncate1, "truncate1"},
   {truncate2, "truncate2"},
   {truncate3, "truncate3"},

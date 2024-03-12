@@ -31,6 +31,7 @@ OBJS = \
   $K/virtio_disk.o
   $(LIBSA)
   $(STDLIB)
+  $(TEST)
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
@@ -58,7 +59,7 @@ LD = $(TOOLPREFIX)ld
 OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 
-CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2 -std=c2x -nostdlib -ffreestanding -DKERNEL -D__POSIX_VISIBLE=200809 -D__XPG_VISIBLE=420 -I./
+CFLAGS = -Wall -Werror -O2 -fno-omit-frame-pointer -ggdb -gdwarf-2 -std=c2x -I./include -I./ -I./sys -DKERNEL -D__POSIX_VISIBLE=200809 -D__XPG_VISIBLE=420
 
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
@@ -77,7 +78,7 @@ endif
 LDFLAGS = -z max-page-size=4096
 
 # カーネルにリンクするライブラリの定義
-KERN_LIBS = $(LIBSA) $(STDLIB) $(STRING) $(GEN)
+KERN_LIBS = $(LIBSA) $(STDLIB) $(STRING) $(GEN) $(TEST)
 
 # LIBSAのビルドルール
 LIBSA_DIR = sys/lib/libsa
@@ -102,7 +103,7 @@ GEN_OBJS = $(patsubst $(GEN_DIR)/%.c, $(GEN_DIR)/%.o, $(GEN_SRCS))
 # LIBSA_OBJSをソースからオブジェクトに変換するルールの作成。
 $(LIBSA_DIR)/%.o: $(LIBSA_DIR)/%.c
 	@echo "\033[0;32mCompiling $< for LIBSA\033[0m"
-	$(CC) $(CFLAGS) -I./include -Wno-attributes -c $< -o $@
+	$(CC) $(CFLAGS) -Wno-attributes -c $< -o $@
 
 # LIBSAターゲットの作成とLIBSA_OBJSスタティックライブラリの生成。
 LIBSA = $(LIBSA_DIR)/libsa.a
@@ -113,7 +114,7 @@ $(LIBSA): $(LIBSA_OBJS)
 # STDLIB_OBJSをソースからオブジェクトに変換するルールを作成。
 $(STDLIB_DIR)/%.o: $(STDLIB_DIR)/%.c
 	@echo "\033[0;32mCompiling $< for STDLIB\033[0m"
-	$(CC) $(CFLAGS) -I./include -I./ -Wno-attributes -c $< -o $@
+	$(CC) $(CFLAGS) -Wno-attributes -c $< -o $@
 
 # STDLIBターゲットを作り、STDLIB_OBJSからスタティックライブラリを生成。
 STDLIB = $(STDLIB_DIR)/stdlib.a
@@ -124,7 +125,7 @@ $(STDLIB): $(STDLIB_OBJS)
 # STRING_OBJSをソースからオブジェクトに変換するルールを作成。
 $(STRING_DIR)/%.o: $(STRING_DIR)/%.c
 	@echo "\033[0;32mCompiling $< for STRING\033[0m"
-	$(CC) $(CFLAGS) -I./include -I./ -Wno-attributes -c $< -o $@
+	$(CC) $(CFLAGS) -Wno-attributes -c $< -o $@
 
 # STRINGターゲットを作り、STRING_OBJSからスタティックライブラリを生成。
 STRING = $(STRING_DIR)/string.a
@@ -135,13 +136,24 @@ $(STRING): $(STRING_OBJS)
 # GEN_OBJSをソースからオブジェクトに変換するルールの作成。
 $(GEN_DIR)/%.o: $(GEN_DIR)/%.c
 	@echo "\033[0;32mCompiling $< for GEN\033[0m"
-	$(CC) $(CFLAGS) -I./include -I./ -Wno-attributes -c $< -o $@
+	$(CC) $(CFLAGS) -Wno-attributes -c $< -o $@
 
 # GENターゲットを作り、GEN_OBJSからスタティックライブラリを生成。
 GEN = $(GEN_DIR)/gen.a
 $(GEN): $(GEN_OBJS)
 	@echo "\033[0;34mCreating $@ library\033[0m"
 	$(AR) rcs $@ $^
+
+#### ZIG ####
+TEST_DIR = test
+ZIG_SRCS = $(wildcard $(TEST_DIR)/*.zig)
+TEST = $(TEST_DIR)/libtest.a
+
+$(TEST): $(ZIG_SRCS)
+	@echo "Building $(TEST) library"
+	@mkdir -p $(TEST_DIR)
+	@cd $(TEST_DIR) && zig build-lib -static -fPIC -fcompiler-rt $(notdir $(ZIG_SRCS))
+	@ranlib $(TEST)
 
 $K/kernel: $(OBJS) $(KERN_LIBS) $K/kernel.ld $U/initcode
 	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) $(KERN_LIBS)
@@ -251,7 +263,7 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	then echo "-gdb tcp::$(GDBPORT)"; \
 	else echo "-s -p $(GDBPORT)"; fi)
 ifndef CPUS
-CPUS := 3
+CPUS := 1
 endif
 
 QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 128M -smp $(CPUS) -nographic

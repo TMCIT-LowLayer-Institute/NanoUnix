@@ -10,8 +10,8 @@ int match(char*, char*);
 void
 grep(char *pattern, int fd)
 {
-  int n = 0, m = 0;
-  char *p = nullptr, *q = nullptr;
+  int n, m;
+  char *p, *q;
 
   m = 0;
   while((n = read(fd, buf+m, sizeof(buf)-m-1)) > 0){
@@ -36,8 +36,8 @@ grep(char *pattern, int fd)
 int
 main(int argc, char *argv[])
 {
-  int fd = 0, i = 0;
-  char *pattern = nullptr;
+  int fd, i;
+  char *pattern;
 
   if(argc <= 1){
     fprintf(2, "usage: grep pattern [file ...]\n");
