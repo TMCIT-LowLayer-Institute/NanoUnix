@@ -5,7 +5,7 @@
  * Written by Dale Rahn.
  */
 
-#include <kernel/types.h>
+#include <kern/types.h>
 
 #include <C/string.h>
 

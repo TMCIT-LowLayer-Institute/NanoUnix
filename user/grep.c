@@ -1,10 +1,12 @@
 // Simple grep.  Only supports ^ . * $ operators.
 
-#include "kernel/types.h"
-#include "kernel/stat.h"
+#include <kern/types.h>
+#include <kern/stat.h>
 #include "user/user.h"
 
-char buf[1024];
+#include <C/string.h>
+
+char buf[1024] = {};
 int match(char*, char*);
 
 void

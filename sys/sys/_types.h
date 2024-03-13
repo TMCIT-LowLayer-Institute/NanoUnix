@@ -34,7 +34,7 @@
 #ifndef _SYS__TYPES_H_
 #define	_SYS__TYPES_H_
 
-#include <kernel/_types.h>
+#include <kern/_types.h>
 
 typedef __int64_t	__blkcnt_t;	/* blocks allocated for file */
 typedef __int32_t	__blksize_t;	/* optimal blocksize for I/O */

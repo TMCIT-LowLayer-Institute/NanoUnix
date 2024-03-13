@@ -19,7 +19,7 @@
 #ifndef	_SYS_STDINT_H_
 #define _SYS_STDINT_H_
 
-#include <kernel/_types.h>
+#include <kern/_types.h>
 
 #ifndef	__BIT_TYPES_DEFINED__
 #define	__BIT_TYPES_DEFINED__

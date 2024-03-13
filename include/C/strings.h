@@ -34,7 +34,7 @@
 #ifndef _STRINGS_H_
 #define	_STRINGS_H_
 
-#include <kernel/_types.h>
+#include <kern/_types.h>
 
 #include <sys/types.h>
 

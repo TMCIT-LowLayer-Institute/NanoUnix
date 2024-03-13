@@ -40,7 +40,7 @@
 #ifndef	_SYS_SIGNAL_H_
 #define	_SYS_SIGNAL_H_
 
-#include <machine/signal.h>	/* sigcontext; codes for SIGILL, SIGFPE */
+#include <kernel/signal.h>	/* sigcontext; codes for SIGILL, SIGFPE */
 
 #define _NSIG	33		/* counting 0 (mask is 1-32) */
 

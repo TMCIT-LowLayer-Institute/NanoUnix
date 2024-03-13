@@ -47,6 +47,8 @@
 #include <sys/_endian.h>
 #endif
 
+#include <sys/_types.h>
+
 typedef	unsigned char	u_char;
 typedef	unsigned short	u_short;
 typedef	unsigned int	u_int;

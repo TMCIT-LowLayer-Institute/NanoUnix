@@ -64,7 +64,7 @@
 #ifndef _STRING_H_
 #define	_STRING_H_
 
-#include <kernel/_null.h>
+#include <kern/_null.h>
 
 #include <sys/types.h>
 #include <sys/cdefs.h>

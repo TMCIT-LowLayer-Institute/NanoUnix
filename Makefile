@@ -1,4 +1,4 @@
-K=kernel
+K=sys/kern
 U=user
 
 OBJS = \
@@ -31,7 +31,6 @@ OBJS = \
   $K/virtio_disk.o
   $(LIBSA)
   $(STDLIB)
-  $(TEST)
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
@@ -59,7 +58,7 @@ LD = $(TOOLPREFIX)ld
 OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 
-CFLAGS = -Wall -Werror -O2 -fno-omit-frame-pointer -ggdb -gdwarf-2 -std=c2x -I./include -I./ -I./sys -DKERNEL -D__POSIX_VISIBLE=200809 -D__XPG_VISIBLE=420
+CFLAGS = -Wall -Werror -O2 -fno-omit-frame-pointer -ggdb -gdwarf-2 -std=c2x -I./include -I./ -I./sys -DKERNEL -D__POSIX_VISIBLE=200809 -D__XPG_VISIBLE=420 -Wno-attributes
 
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
@@ -144,16 +143,31 @@ $(GEN): $(GEN_OBJS)
 	@echo "\033[0;34mCreating $@ library\033[0m"
 	$(AR) rcs $@ $^
 
-#### ZIG ####
-TEST_DIR = test
+#### アセンブリ #####
+# STCHのビルドルール
+STCH_DIR = lib/libc/stch/riscv64/sys
+STCH_SRCS = $(wildcard $(STCH_DIR)/*.S)
+STCH_OBJS = $(patsubst $(STCH_DIR)/%.S, $(STCH_DIR)/%.o, $(STCH_SRCS))
+
+# STCH_OBJSをアセンブリからオブジェクトに変換するルールの作成。
+$(STCH_DIR)/%.o: $(STCH_DIR)/%.S
+	@echo "\033[0;32mAssembling $< for STCH\033[0m"
+	$(AS) $(ASFLAGS) $< -o $@
+
+# STCHターゲットを作り、STCH_OBJSからスタティックライブラリを生成。
+STCH = $(STCH_DIR)/stch.a
+$(STCH): $(STCH_OBJS)
+	@echo "\033[0;34mCreating $@ library\033[0m"
+	$(AR) rcs $@ $^
+
+TEST_DIR = zig
 ZIG_SRCS = $(wildcard $(TEST_DIR)/*.zig)
 TEST = $(TEST_DIR)/libtest.a
 
-$(TEST): $(ZIG_SRCS)
-	@echo "Building $(TEST) library"
-	@mkdir -p $(TEST_DIR)
-	@cd $(TEST_DIR) && zig build-lib -static -fPIC -fcompiler-rt $(notdir $(ZIG_SRCS))
-	@ranlib $(TEST)
+# ZIG のソースファイルを静的ライブラリにビルド
+$(TEST_DIR)/libtest.a: $(ZIG_SRCS)
+	zig build-lib -static -fPIC -fcompiler-rt -target riscv64-freestanding  -isystem ./zig $(ZIG_SRCS) ./zig/test.h
+	@mv libtest.a $(TEST_DIR)
 
 $K/kernel: $(OBJS) $(KERN_LIBS) $K/kernel.ld $U/initcode
 	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) $(KERN_LIBS)
@@ -171,7 +185,7 @@ tags: $(OBJS) _init
 
 ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
 
-_%: %.o $(ULIB)
+_%: %.o $(ULIB) $(TEST_DIR)/libtest.a
 	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
@@ -209,8 +223,8 @@ else
 endif
 
 # find_clangの出力を判定し、見つからない場合はデフォルトのパスを設定
-MKFS_CC := $(shell { ./find_clang || echo "/usr/local/bin/clang"; })
-MKFS_CFLAGS := -Werror -Wall -std=c2x
+MKFS_CC := $(shell { ./find_clang || echo "gcc-13"; })
+MKFS_CFLAGS := -Werror -Wall -std=c2x 
 
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 	$(MKFS_CC) $(MKFS_CFLAGS) -o mkfs/mkfs mkfs/mkfs.c
@@ -238,9 +252,10 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
+	$U/_test\
 
-fs.img: mkfs/mkfs README $(UPROGS)
-	mkfs/mkfs fs.img README $(UPROGS)
+fs.img: mkfs/mkfs README $(UPROGS) include
+	mkfs/mkfs fs.img README $(UPROGS) include
 
 -include kernel/*.d user/*.d
 
@@ -251,10 +266,12 @@ clean:
 	mkfs/mkfs .gdbinit \
         $U/usys.S \
 	$(UPROGS) \
-	$(LIBSA_DIR)/*.d $(LIBSA_DIR)/*.o $(LIBSA_DIR)/*.a \
-	$(STDLIB_DIR)/*.d $(STDLIB_DIR)/*.o $(STDLIB_DIR)/*.a \
-	$(STRING_DIR)/*.d $(STRING_DIR)/*.o $(STRING_DIR)/*.a \
-	$(GEN_DIR)/*.d $(GEN_DIR)/*.o  $(GEN_DIR)/*.a
+	&& find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.d' \) -delete
+
+#	$(LIBSA_DIR)/*.d $(LIBSA_DIR)/*.o $(LIBSA_DIR)/*.a \
+#	$(STDLIB_DIR)/*.d $(STDLIB_DIR)/*.o $(STDLIB_DIR)/*.a \
+#	$(STRING_DIR)/*.d $(STRING_DIR)/*.o $(STRING_DIR)/*.a \
+#	$(GEN_DIR)/*.d $(GEN_DIR)/*.o  $(GEN_DIR)/*.a \
 
 # try to generate a unique GDB port
 GDBPORT = $(shell expr `id -u` % 5000 + 25000)

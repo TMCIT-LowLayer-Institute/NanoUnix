@@ -1,6 +1,8 @@
-#include "kernel/types.h"
-#include "kernel/stat.h"
+#include <kern/types.h>
+#include <kern/stat.h>
 #include "user/user.h"
+
+#include <C/string.h>
 
 int
 main(int argc, char *argv[])

@@ -1,12 +1,15 @@
-#include "kernel/param.h"
-#include "kernel/types.h"
-#include "kernel/stat.h"
+#include "kern/param.h"
+#include "kern/types.h"
+#include "kern/stat.h"
 #include "user/user.h"
-#include "kernel/fs.h"
-#include "kernel/fcntl.h"
-#include "kernel/syscall.h"
-#include "kernel/memlayout.h"
-#include "kernel/riscv.h"
+#include "kern/fs.h"
+#include "kern/fcntl.h"
+#include "kern/syscall.h"
+#include "kern/memlayout.h"
+#include "kern/riscv.h"
+
+#include <C/string.h>
+#include <C/stdlib.h>
 
 //
 // Tests xv6 system calls.  usertests without arguments runs them all

@@ -1,17 +1,20 @@
 // Shell.
 
-#include "kernel/types.h"
+#include <kern/types.h>
 #include "user/user.h"
-#include "kernel/fcntl.h"
+#include <kern/fcntl.h>
+
+#include <C/string.h>
+#include <C/stdlib.h>
 
 // Parsed command representation
-#define EXEC  1
-#define REDIR 2
-#define PIPE  3
-#define LIST  4
-#define BACK  5
+constexpr uint EXEC = 1;
+constexpr uint REDIR = 2;
+constexpr uint PIPE = 3;
+constexpr uint LIST = 4;
+constexpr uint BACK = 5;
 
-#define MAXARGS 10
+constexpr uint MAXARGS = 10;
 
 struct cmd {
   int type;
