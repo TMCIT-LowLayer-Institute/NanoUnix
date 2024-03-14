@@ -4,7 +4,7 @@ struct stat;
 
 // system calls
 int fork(void);
-int exit(int) __attribute__((noreturn));
+extern int exit(int)__attribute__((noreturn));
 int wait(int*);
 int pipe(int*);
 int write(int, const void*, int);
@@ -24,6 +24,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+extern int poweroff(void)__attribute__((noreturn));
 
 // ulib.c
 int stat(const char*, struct stat*);

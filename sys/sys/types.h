@@ -41,11 +41,11 @@
 #define	_SYS_TYPES_H_
 
 #include <sys/cdefs.h>
-#if __BSD_VISIBLE
-#include <sys/endian.h>
-#else
+//#if __BSD_VISIBLE
+//#include <sys/endian.h>
+//#else
 #include <sys/_endian.h>
-#endif
+//#endif
 
 #include <sys/_types.h>
 

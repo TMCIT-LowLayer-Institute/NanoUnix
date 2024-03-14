@@ -34,7 +34,7 @@ OBJS = \
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
-#TOOLPREFIX = 
+#TOOLPREFIX =
 
 # Try to infer the correct TOOLPREFIX if not set
 ifndef TOOLPREFIX
@@ -160,14 +160,29 @@ $(STCH): $(STCH_OBJS)
 	@echo "\033[0;34mCreating $@ library\033[0m"
 	$(AR) rcs $@ $^
 
+#### ZIG #####
+# zigディレクトリのビルドルール
 TEST_DIR = zig
 ZIG_SRCS = $(wildcard $(TEST_DIR)/*.zig)
 TEST = $(TEST_DIR)/libtest.a
 
 # ZIG のソースファイルを静的ライブラリにビルド
 $(TEST_DIR)/libtest.a: $(ZIG_SRCS)
-	zig build-lib -static -fPIC -fcompiler-rt -target riscv64-freestanding  -isystem ./zig $(ZIG_SRCS) ./zig/test.h
+	zig build-lib -static -fPIC -fcompiler-rt -O ReleaseSafe -target riscv64-freestanding  -isystem ./zig -I./ -I./sys $(ZIG_SRCS) ./zig/test.h
 	@mv libtest.a $(TEST_DIR)
+
+UZLIB_SRCS = $(wildcard user/*.zig)
+UZLIB_OBJS = $(patsubst user/%.zig, $U/%.zig.o, $(notdir $(UZLIB_SRCS)))
+
+$U/%.zig.o: user/%.zig
+	@echo "\033[0;32mCompiling $< (Zig)\033[0m"
+	zig build-obj -fno-stack-protector -fno-lto -O ReleaseFast -target riscv64-freestanding -isystem ./ -I ./sys $< --name poweroff.zig
+	@mv poweroff.zig.o user
+
+$U/_poweroff: $U/poweroff.zig.o $(ULIB) $(TEST_DIR)/libtest.a
+	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
+	$(OBJDUMP) -S $@ > $*.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
 
 $K/kernel: $(OBJS) $(KERN_LIBS) $K/kernel.ld $U/initcode
 	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) $(KERN_LIBS)
@@ -224,7 +239,7 @@ endif
 
 # find_clangの出力を判定し、見つからない場合はデフォルトのパスを設定
 MKFS_CC := $(shell { ./find_clang || echo "gcc-13"; })
-MKFS_CFLAGS := -Werror -Wall -std=c2x 
+MKFS_CFLAGS := -Werror -Wall -std=c2x
 
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 	$(MKFS_CC) $(MKFS_CFLAGS) -o mkfs/mkfs mkfs/mkfs.c
@@ -253,20 +268,21 @@ UPROGS=\
 	$U/_wc\
 	$U/_zombie\
 	$U/_test\
+#	$U/_poweroff\
 
 fs.img: mkfs/mkfs README $(UPROGS) include
 	mkfs/mkfs fs.img README $(UPROGS) include
 
 -include kernel/*.d user/*.d
 
-clean: 
+clean:
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
 	*/*.o */*.d */*.asm */*.sym \
 	$U/initcode $U/initcode.out $K/kernel fs.img \
 	mkfs/mkfs .gdbinit \
         $U/usys.S \
 	$(UPROGS) \
-	&& find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.d' \) -delete
+	&& find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.d' -o -name '*.asm' \) -delete
 
 #	$(LIBSA_DIR)/*.d $(LIBSA_DIR)/*.o $(LIBSA_DIR)/*.a \
 #	$(STDLIB_DIR)/*.d $(STDLIB_DIR)/*.o $(STDLIB_DIR)/*.a \
@@ -296,4 +312,4 @@ qemu: $K/kernel fs.img
 
 qemu-gdb: $K/kernel .gdbinit fs.img
 	@echo "*** Now run 'gdb' in another window." 1>&2
-	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
+	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB) 

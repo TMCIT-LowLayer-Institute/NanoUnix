@@ -1,7 +1,13 @@
-const c = @cImport({
-    @cInclude("test.h");
+const kern = @cImport({
+    @cInclude("kern/types.h");
+    @cInclude("kern/stat.h");
 });
 
-pub export fn add(a: i32, b: i32) i32 {
-    return a + b;
+const user = @cImport({
+    @cInclude("user/user.h");
+});
+
+pub export fn shutdown() void {
+    user.poweroff();
+    user.exit(1);
 }

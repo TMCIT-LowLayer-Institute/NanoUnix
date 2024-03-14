@@ -36,7 +36,7 @@
 #include <sys/_types.h>
 
 #define __FROM_SYS__ENDIAN
-#include <machine/endian.h>
+//#include <machine/endian.h>
 #undef __FROM_SYS__ENDIAN
 
 #define _LITTLE_ENDIAN	1234

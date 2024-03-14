@@ -1,1 +1,1 @@
-extern int add(int a, int b);
+extern int shutdown()__attribute__((noreturn));

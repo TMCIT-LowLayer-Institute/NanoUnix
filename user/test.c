@@ -2,38 +2,36 @@
 
 #include "user/user.h"
 #include <C/stdlib.h>
+#include <C/string.h>
 
-#include "../zig/test.h"
+#include <zig/test.h>
+
+// テスト用の大きな型
+typedef struct {
+    int a;
+    double b;
+    char c;
+} BigStruct;
 
 int main() {
-    int n = 5; // 配列のサイズ
-    int *arr = NULL; // 整数ポインタの初期化
+    // 大きな型のポインタをmallocで確保
+    BigStruct* ptr = (BigStruct*)malloc(sizeof(BigStruct));
 
-    // 動的にメモリを割り当てる
-    arr = (int *)malloc(n * sizeof(int));
-    if (arr == NULL) {
-        printf("メモリの割り当てに失敗しました\n");
-        return 1; // エラー終了
+    if (ptr == NULL) {
+        printf("メモリの確保に失敗しました。\n");
+        return 1;
     }
 
-    // 配列の要素に値を代入
-    for (int i = 0; i < n; i++) {
-        arr[i] = i * 2; // 偶数を代入
-    }
+    // アライメント後のポインタを表示
+    printf("アライメント後のポインタ: %p\n", (void*)ptr);
 
-    // 配列の要素を出力
-    printf("配列の要素: ");
-    for (int i = 0; i < n; i++) {
-        printf("%d ", arr[i]);
-    }
-    printf("\n");
+    // メモリ領域を特定の値で初期化（ここでは0で初期化）
+    memset(ptr, 0, sizeof(BigStruct));
 
-    // 割り当てられたメモリを解放
-    free(arr);
-    arr = NULL; // 安全のため、ポインタをNULLに設定
-	
-    int a = add(3, 4);
-    printf("%d", a);
+    // メモリの解放
+    free(ptr);
+
+    shutdown();
 
     return 0;
 }
