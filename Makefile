@@ -242,7 +242,7 @@ MKFS_CC := $(shell { ./find_clang || echo "gcc-13"; })
 MKFS_CFLAGS := -Werror -Wall -std=c23
 
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
-	gcc-14 $(MKFS_CFLAGS) -o mkfs/mkfs mkfs/mkfs.c
+	cc $(MKFS_CFLAGS) -o mkfs/mkfs mkfs/mkfs.c
 
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
