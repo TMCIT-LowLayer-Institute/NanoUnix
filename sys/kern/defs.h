@@ -106,8 +106,8 @@ int piperead(struct pipe *, uint64, int);
 int pipewrite(struct pipe *, uint64, int);
 
 /* printf.c */
-void printf(char *fmt,...);
-void panic(char *)__attribute__((noreturn));
+void printf(const char *fmt,...);
+void panic(const char *fmt,...)__attribute__((noreturn));
 void printfinit(void);
 
 /* proc.c */

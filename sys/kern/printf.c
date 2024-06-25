@@ -31,7 +31,7 @@
  * formatted console output -- printf, panic.
  */
 
-#include "types.h"
+#include <sys/stdint.h>
 #include "param.h"
 #include "spinlock.h"
 #include "sleeplock.h"
@@ -44,24 +44,26 @@
 
 #include <C/stdarg.h>
 
-volatile int panicked = 0;
+volatile int panicked;
 
-/*
- * lock to avoid interleaving concurrent printf's.
- */
+/* Lock to avoid interleaving concurrent printf's. */
 static struct {
-	struct spinlock lock;
-	int locking;
-}      pr;
+	struct spinlock	lock;
+	int		locking;
+} pr;
 
 static char digits[] = "0123456789abcdef";
 
+static void	printint(long long, int, int);
+static void	printptr(unsigned long long);
+static void	vprintf(const char *, va_list);
+
 static void
-printint(int xx, int base, int sign)
+printint(long long xx, int base, int sign)
 {
-	char buf[16] = {};
-	int i = undefined;
-	uint x = undefined;
+	char	buf[16];
+	int	i;
+	unsigned long long x;
 
 	if (sign && (sign = xx < 0))
 		x = -xx;
@@ -81,23 +83,32 @@ printint(int xx, int base, int sign)
 }
 
 static void
-printptr(uint64 x)
+printptr(unsigned long long x)
 {
-	int i = 0;
+	int	i;
+
 	consputc('0');
 	consputc('x');
-	for (i = 0; i < (sizeof(uint64) * 2); i++, x <<= 4)
-		consputc(digits[x >> (sizeof(uint64) * 8 - 4)]);
+	for (i = 0; i < (sizeof(unsigned long long) * 2); i++, x <<= 4)
+		consputc(digits[x >> (sizeof(unsigned long long) * 8 - 4)]);
 }
-/*
- * Print to the console. only understands %d, %x, %p, %s.
- */
+
 void
-printf(char *fmt,...)
+printf(const char *fmt, ...)
 {
-	va_list ap = nullptr;
-	int i = undefined, c = undefined, locking = undefined;
-	char *s = nullptr;
+	va_list	ap;
+
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+}
+
+static void
+vprintf(const char *fmt, va_list ap)
+{
+	char		*s;
+	int		c, locking;
+	unsigned long	num;
 
 	locking = pr.locking;
 	if (locking)
@@ -106,24 +117,26 @@ printf(char *fmt,...)
 	if (fmt == 0)
 		panic("null fmt");
 
-	va_start(ap, fmt);
-	for (i = 0; (c = fmt[i] & 0xff) != 0; i++) {
+	for (; (c = *fmt) != 0; fmt++) {
 		if (c != '%') {
 			consputc(c);
 			continue;
 		}
-		c = fmt[++i] & 0xff;
+		c = *++fmt;
 		if (c == 0)
 			break;
 		switch (c) {
 		case 'd':
-			printint(va_arg(ap, int), 10, 1);
+			num = va_arg(ap, int);
+			printint(num, 10, 1);
 			break;
 		case 'x':
-			printint(va_arg(ap, int), 16, 1);
+			num = va_arg(ap, unsigned int);
+			printint(num, 16, 0);
 			break;
 		case 'p':
-			printptr(va_arg(ap, uint64));
+			num = va_arg(ap, unsigned long);
+			printptr(num);
 			break;
 		case 's':
 			if ((s = va_arg(ap, char *)) == 0)
@@ -141,20 +154,25 @@ printf(char *fmt,...)
 			break;
 		}
 	}
-	va_end(ap);
 
 	if (locking)
 		release(&pr.lock);
 }
 
 void
-panic(char *s)
+panic(const char *fmt, ...)
 {
+	va_list	ap;
+
 	pr.locking = 0;
 	printf("panic: ");
-	printf(s);
+
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+
 	printf("\n");
-	panicked = 1;		/* freeze uart output from other CPUs */
+	panicked = 1;	/* Freeze output from other CPUs */
 	for (;;)
 		;
 }
