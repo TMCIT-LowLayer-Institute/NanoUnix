@@ -225,7 +225,7 @@ MKFS_CC = clang
 MKFS_CFLAGS := -Werror -Wall -std=c23
 
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
-	$MKFS_CC $(MKFS_CFLAGS) -o mkfs/mkfs mkfs/mkfs.c
+	$(MKFS_CC) $(MKFS_CFLAGS) -o mkfs/mkfs mkfs/mkfs.c
 
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
