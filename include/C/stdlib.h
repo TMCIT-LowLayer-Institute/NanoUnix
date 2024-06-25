@@ -42,22 +42,6 @@
 #include <sys/types.h>
 #endif
 
-#define INT long int
-#define ALIGN INT
-#define NALIGN 8   // RISCVの64ビットモードではアラインメントは8バイト
-#define WORD 8     // 64ビットワードサイズは8バイト
-#define BLOCK 1024 // ブロックサイズは1024バイト
-#define BUSY 1
-#define testbusy(p) ((INT)(p)&BUSY)
-#define setbusy(p) ((union store *)((uintptr_t)(p) | BUSY))
-#define clearbusy(p) (union store *)((INT)(p)&~BUSY)
-
-union store {
-	union store *ptr;
-	ALIGN dummy[NALIGN];
-	int calloc;	/*calloc clears an array of integers*/
-};
-
 #ifndef	_SIZE_T_DEFINED_
 #define	_SIZE_T_DEFINED_
 typedef	__size_t	size_t;
@@ -126,7 +110,7 @@ void	 free(void *);
 char	*getenv(const char *);
 long	 labs(long);
 ldiv_t	 ldiv(long, long);
-void	*malloc(unsigned int); //本当はsize_t
+void	*malloc(size_t); //本当はsize_t
 #if __BSD_VISIBLE
 void	freezero(void *, size_t)
 		 __attribute__ ((__bounded__(__buffer__,1,2)));
@@ -137,7 +121,7 @@ void	*recallocarray(void *, size_t, size_t, size_t);
 #endif /* __BSD_VISIBLE */
 void	 qsort(void *, size_t, size_t, int (*)(const void *, const void *));
 int	 rand(void);
-void	*realloc(union store *, unsigned int); 
+void	*realloc(void *ap, size_t nbytes); 
 void	 srand(unsigned);
 void	 srand_deterministic(unsigned);
 double	 strtod(const char *__restrict, char **__restrict);

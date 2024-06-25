@@ -1,177 +1,134 @@
+#include <kern/types.h>
 #include <sys/stdint.h>
+#include <sys/queue.h>
 
-#include <C/stdlib.h>
+#include <C/string.h>
 
-#ifdef debug
-#define ASSERT(p) if(!(p))botch("p");else
-botch(s)
-char *s;
+#define ALIGN		16
+#define BLOCK		4096
+#define HEADER_SIZE	(sizeof(struct block_meta))
+
+struct block_meta {
+	size_t size;
+	int free;
+	TAILQ_ENTRY(block_meta) queue;
+};
+
+TAILQ_HEAD(free_list_head, block_meta);
+static struct free_list_head free_list = TAILQ_HEAD_INITIALIZER(free_list);
+
+extern void *sbrk(intptr_t increment);
+
+static struct block_meta *find_free_block(size_t size)
 {
-	printf("assertion botched: %s\n",s);
-	abort();
+	struct block_meta *block;
+
+	TAILQ_FOREACH(block, &free_list, queue) {
+		if (block->size >= size)
+			return block;
+	}
+	return NULL;
 }
-#else
-#define ASSERT(p)
-#endif
 
-/*	avoid break bug */
-#ifdef pdp11
-#define GRANULE 64
-#else
-#define GRANULE 0
-#endif
-/*	C storage allocator
- *	circular first-fit strategy
- *	works with noncontiguous, but monotonically linked, arena
- *	each block is preceded by a ptr to the (pointer of) 
- *	the next following block
- *	blocks are exact number of words long 
- *	aligned to the data type requirements of ALIGN
- *	pointers to blocks must have BUSY bit 0
- *	bit in ptr is 1 for busy, 0 for idle
- *	gaps in arena are merely noted as busy blocks
- *	last block of arena (pointed to by alloct) is empty and
- *	has a pointer to first
- *	idle blocks are coalesced during space search
- *
- *	a different implementation may need to redefine
- *	ALIGN, NALIGN, BLOCK, BUSY, INT
- *	where INT is integer type to which a pointer can be cast
-*/
+static struct block_meta *request_space(size_t size)
+{
+	struct block_meta *block;
+	void *request;
+	size_t total_size = size + HEADER_SIZE;
 
-static	union store allocs[2];	/*initial arena*/
-static	union store *allocp;	/*search ptr*/
-static	union store *alloct;	/*arena top*/
-static	union store *allocx;	/*for benefit of realloc*/
+	request = sbrk(total_size);
+	if (request == (void *)-1)
+		return NULL;
 
-void *sbrk(intptr_t increment);
+	block = (struct block_meta *)request;
+	block->size = size;
+	block->free = 0;
+	return block;
+}
 
 void *
-malloc(unsigned int nbytes)
+malloc(size_t size)
 {
-	 union store *p, *q;
-	 int nw;
-	static int temp;	/*coroutines assume no auto*/
+	struct block_meta *block;
 
-	if(allocs[0].ptr==0) {	/*first time*/
-		allocs[0].ptr = setbusy(&allocs[1]);
-		allocs[1].ptr = setbusy(&allocs[0]);
-		alloct = &allocs[1];
-		allocp = &allocs[0];
-	}
-	nw = (nbytes+WORD+WORD-1)/WORD;
-	ASSERT(allocp>=allocs && allocp<=alloct);
-	ASSERT(allock());
-	for(p=allocp; ; ) {
-		for(temp=0; ; ) {
-			if(!testbusy(p->ptr)) {
-				while(!testbusy((q=p->ptr)->ptr)) {
-					ASSERT(q>p&&q<alloct);
-					p->ptr = q->ptr;
-				}
-				if(q>=p+nw && p+nw>=p)
-					goto found;
-			}
-			q = p;
-			p = clearbusy(p->ptr);
-			if(p>q)
-				ASSERT(p<=alloct);
-			else if(q!=alloct || p!=allocs) {
-				ASSERT(q==alloct&&p==allocs);
-				return(NULL);
-			} else if(++temp>1)
-				break;
+	if (size == 0)
+		return NULL;
+
+	size = ALIGN * ((size + ALIGN - 1) / ALIGN);
+
+	if ((block = find_free_block(size)) != NULL) {
+		TAILQ_REMOVE(&free_list, block, queue);
+		block->free = 0;
+
+		if (block->size >= size + HEADER_SIZE + ALIGN) {
+			struct block_meta *new_block = (struct block_meta *)((char *)block + HEADER_SIZE + size);
+			new_block->size = block->size - size - HEADER_SIZE;
+			new_block->free = 1;
+			TAILQ_INSERT_TAIL(&free_list, new_block, queue);
+
+			block->size = size;
 		}
-		temp = ((nw+BLOCK/WORD)/(BLOCK/WORD))*(BLOCK/WORD);
-		q = (union store *)sbrk(0);
-		if(q+temp+GRANULE < q) {
-			return(NULL);
-		}
-		q = (union store *)sbrk(temp*WORD);
-		if((INT)q == -1) {
-			return(NULL);
-		}
-		ASSERT(q>alloct);
-		alloct->ptr = q;
-		if(q!=alloct+1)
-			alloct->ptr = setbusy(alloct->ptr);
-		alloct = q->ptr = q+temp-1;
-		alloct->ptr = setbusy(allocs);
+	} else {
+		block = request_space(size);
+		if (block == NULL)
+			return NULL;
 	}
-found:
-	allocp = p + nw;
-	ASSERT(allocp<=alloct);
-	if(q>allocp) {
-		allocx = allocp->ptr;
-		allocp->ptr = p->ptr;
-	}
-	p->ptr = setbusy(allocp);
-	return((char *)(p+1));
+
+	return (void *)(block + 1);
 }
 
-/*	freeing strategy tuned for LIFO allocation
-*/
 void
-free(void *ap)
+free(void *ptr)
 {
-	 union store *p = (union store *)ap;
+	struct block_meta *block, *neighbor;
 
-	ASSERT(p>clearbusy(allocs[1].ptr)&&p<=alloct);
-	ASSERT(allock());
-	allocp = --p;
-	ASSERT(testbusy(p->ptr));
-	p->ptr = clearbusy(p->ptr);
-	ASSERT(p->ptr > allocp && p->ptr <= alloct);
+	if (ptr == NULL)
+		return;
+
+	block = ((struct block_meta *)ptr) - 1;
+	block->free = 1;
+
+	/* Merge with previous block if it's free */
+	neighbor = TAILQ_PREV(block, free_list_head, queue);
+	if (neighbor != NULL && neighbor->free && (char *)neighbor + neighbor->size + HEADER_SIZE == (char *)block) {
+		TAILQ_REMOVE(&free_list, neighbor, queue);
+		neighbor->size += block->size + HEADER_SIZE;
+		block = neighbor;
+	}
+
+	/* Merge with next block if it's free */
+	neighbor = TAILQ_NEXT(block, queue);
+	if (neighbor != NULL && neighbor->free && (char *)block + block->size + HEADER_SIZE == (char *)neighbor) {
+		TAILQ_REMOVE(&free_list, neighbor, queue);
+		block->size += neighbor->size + HEADER_SIZE;
+	}
+
+	TAILQ_INSERT_TAIL(&free_list, block, queue);
 }
-
-/*	realloc(p, nbytes) reallocates a block obtained from malloc()
- *	and freed since last call of malloc()
- *	to have new size nbytes, and old content
- *	returns new location, or 0 on failure
-*/
 
 void *
-realloc(union store *p, unsigned int nbytes) // _store is union store from "malloc.h"
+realloc(void *ptr, size_t size)
 {
-	 union store *q;
-	union store *s, *t;
-	 unsigned int nw;
-	unsigned int onw;
+	struct block_meta *block;
+	void *new_ptr;
 
-	if(testbusy(p[-1].ptr))
-		free((char *)p);
-	onw = p[-1].ptr - p;
-	q = (union store *)malloc(nbytes);
-	if(q==NULL || q==p)
-		return((char *)q);
-	s = p;
-	t = q;
-	nw = (nbytes+WORD-1)/WORD;
-	if(nw<onw)
-		onw = nw;
-	while(onw--!=0)
-		*t++ = *s++;
-	if(q<p && q+nw>=p)
-		(q+(q+nw-p))->ptr = allocx;
-	return((char *)q);
-}
+	if (ptr == NULL)
+		return malloc(size);
 
-#ifdef debug
-int
-allock()
-{
-#ifdef longdebug
-	 union store *p;
-	int x;
-	x = 0;
-	for(p= &allocs[0]; clearbusy(p->ptr) > p; p=clearbusy(p->ptr)) {
-		if(p==allocp)
-			x++;
+	if (size == 0) {
+		free(ptr);
+		return NULL;
 	}
-	ASSERT(p==alloct);
-	return(x==1|p==allocp);
-#else
-	return(1);
-#endif
+
+	block = ((struct block_meta *)ptr) - 1;
+	if (block->size >= size)
+		return ptr;
+
+	new_ptr = malloc(size);
+	if (new_ptr == NULL)
+		return NULL;
+
+	memcpy(new_ptr, ptr, block->size);
+	free(ptr);
+	return new_ptr;
 }
-#endif
