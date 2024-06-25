@@ -221,11 +221,11 @@ $U/_forktest: $U/forktest.o $(ULIB)
 #	/usr/local/bin/clang -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c -std=c23
 # Makefile
 # Directories to search for clang
-MKFS_CC = cc
+MKFS_CC = clang
 MKFS_CFLAGS := -Werror -Wall -std=c23
 
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
-	MKFS_CC $(MKFS_CFLAGS) -o mkfs/mkfs mkfs/mkfs.c
+	$MKFS_CC $(MKFS_CFLAGS) -o mkfs/mkfs mkfs/mkfs.c
 
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
