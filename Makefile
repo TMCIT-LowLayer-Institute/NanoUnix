@@ -79,6 +79,21 @@ LDFLAGS = -z max-page-size=4096
 # カーネルにリンクするライブラリの定義
 KERN_LIBS = $(LIBSA) $(STDLIB) $(STRING) $(GEN) $(TEST)
 
+# LIBSAのビルドルール
+LIBSA_DIR = sys/lib/libsa
+LIBSA_SRCS = $(wildcard $(LIBSA_DIR)/*.c)
+LIBSA_OBJS = $(patsubst $(LIBSA_DIR)/%.c, $(LIBSA_DIR)/%.o, $(LIBSA_SRCS))
+
+# STDLIBのビルドルール
+STDLIB_DIR = lib/libc/stdlib
+STDLIB_SRCS = $(wildcard $(STDLIB_DIR)/*.c)
+STDLIB_OBJS = $(patsubst $(STDLIB_DIR)/%.c, $(STDLIB_DIR)/%.o, $(STDLIB_SRCS))
+
+# STRINGのビルドルール
+STRING_DIR = lib/libc/string
+STRING_SRCS = $(wildcard $(STRING_DIR)/*.c)
+STRING_OBJS = $(patsubst $(STRING_DIR)/%.c, $(STRING_DIR)/%.o, $(STRING_SRCS))
+
 # GENのビルドルール
 GEN_DIR = lib/libc/gen
 GEN_SRCS = $(wildcard $(GEN_DIR)/*.c)
@@ -89,15 +104,33 @@ $(LIBSA_DIR)/%.o: $(LIBSA_DIR)/%.c
 	@echo "\033[0;32mCompiling $< for LIBSA\033[0m"
 	$(CC) $(CFLAGS) -Wno-attributes -c $< -o $@
 
+# LIBSAターゲットの作成とLIBSA_OBJSスタティックライブラリの生成。
+LIBSA = $(LIBSA_DIR)/libsa.a
+$(LIBSA): $(LIBSA_OBJS)
+	@echo "\033[0;34mCreating $@ library\033[0m"
+	$(AR) rcs $@ $^
+
 # STDLIB_OBJSをソースからオブジェクトに変換するルールを作成。
 $(STDLIB_DIR)/%.o: $(STDLIB_DIR)/%.c
 	@echo "\033[0;32mCompiling $< for STDLIB\033[0m"
 	$(CC) $(CFLAGS) -Wno-attributes -c $< -o $@
 
+# STDLIBターゲットを作り、STDLIB_OBJSからスタティックライブラリを生成。
+STDLIB = $(STDLIB_DIR)/stdlib.a
+$(STDLIB): $(STDLIB_OBJS)
+	@echo "\033[0;34mCreating $@ library\033[0m"
+	$(AR) rcs $@ $^
+
 # STRING_OBJSをソースからオブジェクトに変換するルールを作成。
 $(STRING_DIR)/%.o: $(STRING_DIR)/%.c
 	@echo "\033[0;32mCompiling $< for STRING\033[0m"
 	$(CC) $(CFLAGS) -Wno-attributes -c $< -o $@
+
+# STRINGターゲットを作り、STRING_OBJSからスタティックライブラリを生成。
+STRING = $(STRING_DIR)/string.a
+$(STRING): $(STRING_OBJS)
+	@echo "\033[0;34mCreating $@ library\033[0m"
+	$(AR) rcs $@ $^
 
 # GEN_OBJSをソースからオブジェクトに変換するルールの作成。
 $(GEN_DIR)/%.o: $(GEN_DIR)/%.c
