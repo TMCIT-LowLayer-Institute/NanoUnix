@@ -1,6 +1,8 @@
 #include <sys/types.h>
 
 #include "user/user.h"
+
+#include <C/err.h>
 #include <C/stdlib.h>
 #include <C/string.h>
 
@@ -16,10 +18,8 @@ typedef struct {
 int main() {
     // 大きな型のポインタをmallocで確保
     BigStruct* ptr = (BigStruct*)malloc(sizeof(BigStruct));
-
     if (ptr == NULL) {
-        printf("メモリの確保に失敗しました。\n");
-        return 1;
+	    exit(1);
     }
 
     // アライメント後のポインタを表示
