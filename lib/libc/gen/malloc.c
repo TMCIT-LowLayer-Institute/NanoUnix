@@ -110,10 +110,11 @@ void *
 realloc(void *ptr, size_t size)
 {
 	struct block_meta *block;
-	auto new_ptr, p;
+	auto new_ptr = NULL;
+	auto p = NULL;
 
 	if (ptr == NULL)
-		if (p = malloc(size) == NULL)
+		if ((p = malloc(size)) == NULL)
 			return NULL;
 
 	if (size == 0) {
@@ -124,9 +125,9 @@ realloc(void *ptr, size_t size)
 	if (block->size >= size)
 		return ptr;
 
-	if ((new_ptr = malloc(size)) == NULL{
+	if ((new_ptr = malloc(size)) == NULL) 
 		return NULL;
-	}
+	
 
 	memcpy(new_ptr, ptr, block->size);
 	free(ptr);
