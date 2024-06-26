@@ -11,15 +11,15 @@
 struct block_meta {
 	size_t size;
 	int free;
-	TAILQ_ENTRY(block_meta) queue;
+	    TAILQ_ENTRY(block_meta) queue;
 };
-
 TAILQ_HEAD(free_list_head, block_meta);
 static struct free_list_head free_list = TAILQ_HEAD_INITIALIZER(free_list);
 
 extern void *sbrk(intptr_t increment);
 
-static struct block_meta *find_free_block(size_t size)
+static struct block_meta *
+find_free_block(size_t size)
 {
 	struct block_meta *block;
 
@@ -30,7 +30,8 @@ static struct block_meta *find_free_block(size_t size)
 	return NULL;
 }
 
-static struct block_meta *request_space(size_t size)
+static struct block_meta *
+request_space(size_t size)
 {
 	struct block_meta *block;
 	void *request;
@@ -102,7 +103,6 @@ free(void *ptr)
 		TAILQ_REMOVE(&free_list, neighbor, queue);
 		block->size += neighbor->size + HEADER_SIZE;
 	}
-
 	TAILQ_INSERT_TAIL(&free_list, block, queue);
 }
 
@@ -110,23 +110,23 @@ void *
 realloc(void *ptr, size_t size)
 {
 	struct block_meta *block;
-	void *new_ptr;
+	auto new_ptr, p;
 
 	if (ptr == NULL)
-		return malloc(size);
+		if (p = malloc(size) == NULL)
+			return NULL;
 
 	if (size == 0) {
 		free(ptr);
 		return NULL;
 	}
-
 	block = ((struct block_meta *)ptr) - 1;
 	if (block->size >= size)
 		return ptr;
 
-	new_ptr = malloc(size);
-	if (new_ptr == NULL)
+	if ((new_ptr = malloc(size)) == NULL{
 		return NULL;
+	}
 
 	memcpy(new_ptr, ptr, block->size);
 	free(ptr);
