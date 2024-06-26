@@ -217,7 +217,7 @@ int	 fgetpos(FILE *, fpos_t *);
 char	*fgets(char *, int, FILE *)
 		__attribute__((__bounded__ (__string__,1,2)));
 FILE	*fopen(const char *, const char *);
-int	 fprintf(FILE *, const char *, ...);
+/* int	 fprintf(FILE *, const char *, ...); */
 int	 fputc(int, FILE *);
 int	 fputs(const char *, FILE *);
 size_t	 fread(void *, size_t, size_t, FILE *)
@@ -259,14 +259,18 @@ void	 rewind(FILE *);
 int	 scanf(const char *, ...);
 void	 setbuf(FILE *, char *);
 int	 setvbuf(FILE *, char *, int, size_t);
-int	 sprintf(char *, const char *, ...);
+/* int	 sprintf(char *, const char *, ...); */
 int	 sscanf(const char *, const char *, ...);
 FILE	*tmpfile(void);
 char	*tmpnam(char *);
 int	 ungetc(int, FILE *);
+/*
 int	 vfprintf(FILE *, const char *, __va_list);
 int	 vprintf(const char *, __va_list);
 int	 vsprintf(char *, const char *, __va_list);
+*/
+
+/*
 #if __POSIX_VISIBLE >= 200809
 int	 vdprintf(int, const char * __restrict, __va_list)
 		__attribute__((__format__ (printf, 2, 0)))
@@ -282,8 +286,10 @@ int	 vsnprintf(char *, size_t, const char *, __va_list)
 		__attribute__((__format__ (printf, 3, 0)))
 		__attribute__((__nonnull__ (3)))
 		__attribute__((__bounded__(__string__,1,2)));
-#endif /* __ISO_C_VISIBLE >= 1999 || __XPG_VISIBLE >= 500 || __BSD_VISIBLE */
+*/
+/*/#endif */ /* __ISO_C_VISIBLE >= 1999 || __XPG_VISIBLE >= 500 || __BSD_VISIBLE */
 
+/*
 #if __ISO_C_VISIBLE >= 1999 || __BSD_VISIBLE
 int	 vfscanf(FILE *, const char *, __va_list)
 		__attribute__((__format__ (scanf, 2, 0)))
@@ -294,7 +300,8 @@ int	 vscanf(const char *, __va_list)
 int	 vsscanf(const char *, const char *, __va_list)
 		__attribute__((__format__ (scanf, 2, 0)))
 		__attribute__((__nonnull__ (2)));
-#endif /* __ISO_C_VISIBLE >= 1999 || __BSD_VISIBLE */
+*/
+/* #endif * */ /* __ISO_C_VISIBLE >= 1999 || __BSD_VISIBLE */
 
 __END_DECLS
 
