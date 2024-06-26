@@ -29,8 +29,6 @@ OBJS = \
   $K/kernelvec.o \
   $K/plic.o \
   $K/virtio_disk.o
-  $(LIBSA)
-  $(STDLIB)
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
@@ -163,24 +161,24 @@ $(STCH): $(STCH_OBJS)
 #### ZIG #####
 # zigディレクトリのビルドルール
 TEST_DIR = zig
-ZIG_SRCS = $(wildcard $(TEST_DIR)/*.zig)
+ZIG_SRCS = $(wildcard $(TEST_DIR)/poweroff.zig)
 TEST = $(TEST_DIR)/libtest.a
 
 # ZIG のソースファイルを静的ライブラリにビルド
-$(TEST_DIR)/libtest.a: $(ZIG_SRCS)
-	zig build-lib -static -fPIC -fcompiler-rt -O ReleaseSafe -target riscv64-freestanding  -isystem ./zig -I./ -I./sys $(ZIG_SRCS) ./zig/test.h
-	@mv libtest.a $(TEST_DIR)
+$(TEST): $(ZIG_SRCS)
+	@echo "\033[0;34mBuilding Zig library\033[0m"
+	zig build-lib -static -fPIC -fcompiler-rt -O ReleaseSafe -target riscv64-freestanding -isystem ./zig -I./ -I./sys -I./include -femit-bin=$(TEST_DIR)/libtest.a $(TEST_DIR)/main.zig
+	@echo "\033[0;32mZig library built successfully\033[0m"
 
 UZLIB_SRCS = $(wildcard user/*.zig)
 UZLIB_OBJS = $(patsubst user/%.zig, $U/%.zig.o, $(notdir $(UZLIB_SRCS)))
 
 $U/%.zig.o: user/%.zig
 	@echo "\033[0;32mCompiling $< (Zig)\033[0m"
-	zig build-obj -fno-stack-protector -fno-lto -O ReleaseFast -target riscv64-freestanding -isystem ./ -I ./sys $< --name poweroff.zig
-	@mv poweroff.zig.o user
+	zig build-obj -fno-stack-protector -fno-lto -O ReleaseFast -target riscv64-freestanding -isystem ./ -I ./sys -I./include $< --name $(notdir $@)
+	@mv $(notdir $@) $U
 
-$U/_poweroff: $U/poweroff.zig.o $(ULIB) $(TEST_DIR)/libtest.a
-	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
+$U/_poweroff: $U/poweroff.zig	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
 
@@ -200,7 +198,7 @@ tags: $(OBJS) _init
 
 ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
 
-_%: %.o $(ULIB) $(TEST_DIR)/libtest.a
+_%: %.o $(ULIB) $(TEST)
 	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
@@ -217,15 +215,33 @@ $U/_forktest: $U/forktest.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o
 	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
 
-#mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
-#	/usr/local/bin/clang -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c -std=c23
-# Makefile
-# Directories to search for clang
+#### ZIG #####
+# clearコマンドのビルドルール
+CLEAR_OBJ = $(TEST_DIR)/clear.o
+
+$(CLEAR_OBJ): $(TEST_DIR)/clear.zig
+	@echo "\033[0;34mBuilding clear object\033[0m"
+	zig build-obj $(TEST_DIR)/clear.zig \
+		-fPIC -fcompiler-rt \
+		-O ReleaseSafe \
+		-target riscv64-freestanding \
+		-isystem ./zig -I./ -I./sys -I./include \
+		-femit-bin=$@
+	@echo "\033[0;32mClear object built successfully\033[0m"
+
+$U/_clear: $(CLEAR_OBJ) $(ULIB)
+	@echo "\033[0;32mLinking clear command\033[0m"
+	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
+	$(OBJDUMP) -S $@ > $*.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
+
+# UPROGSリストにclearを追加（すでに追加されている場合は不要）
+UPROGS += $U/_clear
+
 MKFS_CC = clang
-MKFS_CFLAGS := -Werror -Wall -std=c23
 
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
-	$(MKFS_CC) $(MKFS_CFLAGS) -o mkfs/mkfs mkfs/mkfs.c
+	$(MKFS_CC) -std=c23 -o mkfs/mkfs mkfs/mkfs.c
 
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
@@ -250,8 +266,8 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
-	$U/_test\
-#	$U/_poweroff\
+#	$U/_clear\
+#	$U/_poweroff
 
 fs.img: mkfs/mkfs README $(UPROGS) include
 	mkfs/mkfs fs.img README $(UPROGS) include
