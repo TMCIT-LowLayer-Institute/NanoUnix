@@ -60,7 +60,7 @@ constexpr uint FSMAGIC = 0x10203040;
 
 constexpr uint NDIRECT = 12;
 constexpr uint NINDIRECT = BSIZE / sizeof(uint);
-constexpr uint MAXFILE = NDIRECT + NINDIRECT;
+constexpr uint MAXFILE = NDIRECT + NINDIRECT + 1;
 
 /*
  * On - disk inode structure
