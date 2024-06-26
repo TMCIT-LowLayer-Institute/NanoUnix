@@ -235,9 +235,6 @@ $U/_clear: $(CLEAR_OBJ) $(ULIB)
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
 
-# UPROGSリストにclearを追加（すでに追加されている場合は不要）
-UPROGS += $U/_clear
-
 MKFS_CC = clang
 
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
@@ -266,7 +263,7 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
-#	$U/_clear\
+	$U/_clear\
 #	$U/_poweroff
 
 fs.img: mkfs/mkfs README $(UPROGS) include
